@@ -24,6 +24,23 @@ local function ReuseAndRename(oldName, newName, newParent)
 	return button
 end
 
+local function ExtractSpellName(line)
+	-- Try to find and capture the spell name in CastSpellByName
+	local _, _, spellName = string.find(line, 'CastSpellByName%(%s*%"([^"]+)%"%s*%)')
+	if spellName then
+			return spellName
+	end
+
+	-- Try to find and capture the spell name in #showtooltip
+	_, _, spellName = string.find(line, '#showtooltip%s+([%w%s]+)')
+	if spellName then
+			return spellName
+	end
+
+	-- Return nil if no spell name is found
+	return nil
+end
+
 BActionButton = {
 	--[[ Constructor Functions ]]--
 
@@ -197,6 +214,30 @@ BActionButton = {
 		local texture = GetActionTexture(pagedID)
 		local icon = getglobal(buttonName.."Icon")
 		local buttonCooldown = getglobal(buttonName.."Cooldown")
+
+		local macroName = GetActionText(pagedID)
+		if macroName then
+			local name, macro_texture, body = GetMacroInfo(GetMacroIndexByName(macroName))
+			if body then
+				for line in string.gfind(body,"([^\n]+)\n") do
+					spell = ExtractSpellName(line)
+					local i = 1
+					while true do
+						local spellName, spellRank = GetSpellName(i, BOOKTYPE_SPELL);
+						if not spellName then
+							break;
+						end
+
+						if spellName == spell then
+							texture = GetSpellTexture(i, BOOKTYPE_SPELL)
+							break
+						end
+						i = i + 1
+					end
+					if texture then break end
+				end
+			end
+		end
 
 		if texture then
 			icon:SetTexture(texture)
